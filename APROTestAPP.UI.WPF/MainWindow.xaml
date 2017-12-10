@@ -5,18 +5,32 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:APROTestAPP.UI.WPF"
         mc:Ignorable="d"
-        Title="MainWindow" Height="350" Width="525">
+        Title="MainWindow" Height="600" Width="750">
     <Window.Resources>
         <Style TargetType="TextBlock">
             <Setter Property="FontSize" Value="14" />
         </Style>
         <Style TargetType="TextBox">
             <Setter Property="FontSize" Value="14" />
+            <Setter Property="SpellCheck.IsEnabled" Value="True"/>
+            <Setter Property="Language" Value="en"/>
+            <Setter Property="TextWrapping" Value="Wrap"/>
+            <Setter Property="AcceptsTab" Value="True"/>
+            <Setter Property="AcceptsReturn" Value="True"/>
+            <Setter Property="MaxLength" Value="100"/>
+            <Setter Property="SelectionBrush" Value="Blue"/>
+            <Setter Property="Margin" Value="5"/>
         </Style>
         <Style TargetType="Button">
             <Setter Property="Padding" Value="5" />
             <Setter Property="Margin" Value="10" />
         </Style>
+        <DataTemplate x:Key="listTemplate">
+            <StackPanel Margin="5">
+                <Image Width="100" Height="100" Source="{Binding Path=Picture}"></Image>
+                <TextBlock FontSize="12" Text="{Binding Path=Name}" HorizontalAlignment="Center" />
+            </StackPanel>
+        </DataTemplate>
     </Window.Resources>
     <Grid>
         <Grid.ColumnDefinitions>
@@ -27,21 +41,17 @@
             <RowDefinition Height="*"/>
             <RowDefinition Height="0.2*"/>
         </Grid.RowDefinitions>
-        <ListBox Grid.Column="0" Grid.Row="0" ItemsSource="{Binding PageProducts}"
-                 SelectedItem="{Binding SelectedProduct}">
-            <ListBox.ItemTemplate>
-                <DataTemplate>
-                    <StackPanel Margin="5" Orientation="Horizontal">
-                        <Image Source="{Binding Path=Picture}" Stretch="Uniform"></Image>
-                        <StackPanel>
-                            <TextBlock FontSize="18" Text="{Binding Path=Name}" />
-                            <TextBlock Text="{Binding Path=OnlinerURL}" />
-                            <TextBlock Text="{Binding Path=Price}" />
-                            <TextBlock Text="{Binding Path=Description}" />
-                        </StackPanel>
-                    </StackPanel>
-                </DataTemplate>
-            </ListBox.ItemTemplate>      
+        <ListBox Grid.Column="0" Grid.Row="0" 
+                 ItemsSource="{Binding PageProducts}"
+                 SelectedItem="{Binding SelectedProduct}"
+                 ItemTemplate="{StaticResource listTemplate}"
+                 SelectionChanged="ListBox_SelectionChanged"
+                 ScrollViewer.HorizontalScrollBarVisibility="Disabled">
+            <ListBox.ItemsPanel>
+                <ItemsPanelTemplate>
+                    <WrapPanel />
+                </ItemsPanelTemplate>
+            </ListBox.ItemsPanel>      
         </ListBox>
         <Grid Grid.Column="0" Grid.Row="1">
             <Grid.ColumnDefinitions>
@@ -53,31 +63,65 @@
             <Button Grid.Column="2" Click="OnNextClicked" DockPanel.Dock="Right" IsEnabled="{Binding IsNotLastPage}">Next</Button>
             <TextBlock Grid.Column="1" Text="{Binding CurrentPage}" Margin="5" TextAlignment="Center"/>
         </Grid>
-        <StackPanel Grid.Column="1" Grid.Row="0">
-            <Expander Header="Producer Filter">
-                <ListBox ItemsSource="{Binding Producers}">
-                    <ListBox.ItemTemplate>
-                        <DataTemplate>
-                            <RadioButton GroupName="Producers"
+        <TabControl Grid.Column="1" Grid.Row="0">
+            <TabItem Header="Details">
+                <ScrollViewer>
+                    <StackPanel>
+                        <StackPanel Visibility="{Binding Path=DetailVisibility}" x:Name="DetailStackPanel">
+                            <TextBlock FontSize="16" Text="{Binding StringFormat=Name: {0},Path=SelectedProduct.Name}"  />
+                            <TextBlock FontSize="12" Text="{Binding StringFormat=Price: {0}, Path=SelectedProduct.Price}" />
+                            <TextBlock FontSize="12" Text="{Binding StringFormat=Url: {0}, Path=SelectedProduct.OnlinerURL}" />
+                            <TextBlock FontSize="12" Text="{Binding StringFormat=Description: {0}, Path=SelectedProduct.Description}" TextWrapping="Wrap" />
+                            <TextBlock FontSize="12" Text="{Binding StringFormat=Producer: {0}, Path=SelectedProduct.Producer.Name}" />
+                            <TextBlock FontSize="12" Text="{Binding StringFormat=Category: {0}, Path=SelectedProduct.Category.Name}" />
+                            <Button Content="Edit" Click="OnStartEdit"></Button>
+                            <Button Content="Delete" Click="OnDelete"></Button>
+                        </StackPanel>
+                        <StackPanel Visibility="Collapsed" x:Name="EditStackPanel">
+                            <Label Target="{Binding ElementName=TextBoxName}" Content="Name"></Label>
+                            <TextBox Name="TextBoxName" Text="{Binding Path=SelectedProduct.Name}"></TextBox>
+                            <Label Target="{Binding ElementName=TextBoxPrice}" Content="Price"></Label>
+                            <TextBox Name="TextBoxPrice" Text="{Binding Path=SelectedProduct.Price}"></TextBox>
+                            <Label Target="{Binding ElementName=TextBoxUrl}" Content="Url"></Label>
+                            <TextBox Name="TextBoxUrl" Text="{Binding Path=SelectedProduct.OnlinerURL}"></TextBox>
+                            <Label Target="{Binding ElementName=TextBoxDescription}" Content="Description"></Label>
+                            <TextBox Name="TextBoxDescription" Text="{Binding Path=SelectedProduct.Description}"></TextBox>
+                            <Label Target="{Binding ElementName=TextBoxProducer}" Content="Producer"></Label>
+                            <TextBox Name="TextBoxProducer" Text="{Binding Path=SelectedProduct.Producer.Name}"></TextBox>
+                            <Button Content="Update" Click="OnUpdate"></Button>
+                            <Button Content="Cancel" Click="OnFinishEdit"></Button>
+                        </StackPanel>
+                    </StackPanel>
+                </ScrollViewer>
+            </TabItem>
+            <TabItem Header="Filter">
+                <StackPanel Grid.Column="1" Grid.Row="0">
+                    <Expander Header="Producer Filter">
+                        <ListBox ItemsSource="{Binding Producers}">
+                            <ListBox.ItemTemplate>
+                                <DataTemplate>
+                                    <RadioButton GroupName="Producers"
                                          Checked="RadioButtonProducers_Checked"
                                          IsChecked="{Binding Path=IsChecked}" 
                                          Content="{Binding Path=Name}"/>
-                        </DataTemplate>
-                    </ListBox.ItemTemplate>
-                </ListBox>
-            </Expander>
-            <Expander Header="Category Filter">
-                <ListBox ItemsSource="{Binding Categories}">
-                    <ListBox.ItemTemplate>
-                        <DataTemplate>
-                            <RadioButton GroupName="Categories" 
+                                </DataTemplate>
+                            </ListBox.ItemTemplate>
+                        </ListBox>
+                    </Expander>
+                    <Expander Header="Category Filter">
+                        <ListBox ItemsSource="{Binding Categories}">
+                            <ListBox.ItemTemplate>
+                                <DataTemplate>
+                                    <RadioButton GroupName="Categories" 
                                          Checked="RadioButtonCategories_Checked"
                                          IsChecked="{Binding Path=IsChecked, Mode=TwoWay}"
                                          Content="{Binding Path=Name, Mode=OneWay}"/>
-                        </DataTemplate>
-                    </ListBox.ItemTemplate>
-                </ListBox>
-            </Expander>
-        </StackPanel>
+                                </DataTemplate>
+                            </ListBox.ItemTemplate>
+                        </ListBox>
+                    </Expander>
+                </StackPanel>
+            </TabItem>
+        </TabControl>
     </Grid>
 </Window>

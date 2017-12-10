@@ -6,8 +6,8 @@ using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Runtime.CompilerServices;
-using System.Windows.Data;
 using System.Collections.Specialized;
+using System.Windows;
 
 namespace APROTestAPP.UI.WPF
 {
@@ -19,7 +19,7 @@ namespace APROTestAPP.UI.WPF
         private Int32 _itemsPerPage;
         private Int32 _currentPage;
         private Int32 _pageCount;
-        private Product selectedProduct;
+        private Product _selectedProduct;
         
         public Int32 ItemsPerPage
         {
@@ -61,10 +61,10 @@ namespace APROTestAPP.UI.WPF
         }
         public Product SelectedProduct
         {
-            get { return selectedProduct; }
+            get { return _selectedProduct; }
             set
             {
-                selectedProduct = value;
+                _selectedProduct = value;
                 OnPropertyChanged("SelectedProduct");
             }
         }
@@ -74,7 +74,7 @@ namespace APROTestAPP.UI.WPF
         }
         public Boolean IsNotLastPage
         {
-            get { return _currentPage != _pageCount - 1; }
+            get { return _currentPage != _pageCount - 1 && _pageCount != 0; }
         }
 
         public String ProducersFilter { get; set; }
@@ -91,6 +91,10 @@ namespace APROTestAPP.UI.WPF
             this.ItemsPerPage = 4; //hardcoded value
             this._dbContext = ApplicationDBContext.GetInstance("DefaultConnection");
             this.PageProducts = new ObservableCollection<Product>(this.GetData());
+            this.PageProducts.CollectionChanged += (obj, sender) => 
+            {
+                this.SelectedProduct = this.PageProducts.FirstOrDefault();
+            };
             this.Producers = new ObservableCollection<Wrapper>(this._dbContext.Producers
                 .Select(prod => new Wrapper() { Name = prod.Name, IsChecked = false }));
             this.Producers.Add(new Wrapper() { Name = _empty, IsChecked = true });
@@ -100,6 +104,7 @@ namespace APROTestAPP.UI.WPF
             this.Categories.Add(new Wrapper() { Name = _empty, IsChecked = true });
             this.Categories.CollectionChanged += OnCategoriesCollectionChanged;
             this.PageCount = CountPages();
+            this.SelectedProduct = PageProducts.FirstOrDefault();
         }
 
         public Int32 CountPages()
@@ -131,7 +136,7 @@ namespace APROTestAPP.UI.WPF
             this.CategoriesFilter = changedItem.Name;
             this.PageCount = CountPages();
             this.CurrentPage = 0;
-            this.Refresh();
+            this.RefreshPageProducts();
         }
 
         public void OnProducersCollectionChanged(Object sender, NotifyCollectionChangedEventArgs args)
@@ -142,7 +147,7 @@ namespace APROTestAPP.UI.WPF
             this.ProducersFilter = changedItem.Name;
             this.CurrentPage = 0;
             this.PageCount = CountPages();
-            this.Refresh();
+            this.RefreshPageProducts();
         }
 
         public IQueryable<Product> FilterByCategory(IQueryable<Product> query)
@@ -169,7 +174,7 @@ namespace APROTestAPP.UI.WPF
             if (this.CurrentPage < this.PageCount)
             {
                 this.CurrentPage += 1;
-                this.Refresh();
+                this.RefreshPageProducts();
             }
             else
                 throw new Exception("unexpexted _currentPage");
@@ -180,16 +185,17 @@ namespace APROTestAPP.UI.WPF
             if (this.CurrentPage > 0)
             {
                 this.CurrentPage -= 1;
-                this.Refresh();
+                this.RefreshPageProducts();
             }   
             else throw new Exception("unexpexted _currentPage");
         }
 
-        public void Refresh()
+        public void RefreshPageProducts()
         {
             this.PageProducts.Clear();
             foreach (var item in this.GetData())
                 this.PageProducts.Add(item);
         }
+
     }
 }
